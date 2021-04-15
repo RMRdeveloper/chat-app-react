@@ -105,7 +105,7 @@ const MessageSend = styled.div`
 		`}
 `;
 
-const socket = socketIO('http://localhost:8080');
+const socket = socketIO('https://chat-api-react.herokuapp.com/');
 function App() {
 	const [message, setMessage] = useState({ text: '', received: false });
 	const [dbReady, setDBReady] = useState(false);
