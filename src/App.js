@@ -35,8 +35,17 @@ const MessageContainer = styled.div`
 	overflow-y: auto;
 	border-radius: 10px 10px 0px 0px;
 	flex-direction: column;
-	justify-content: flex-end;
 	background: #2c3e50;
+	&::-webkit-scrollbar {
+		width: 8px;
+		border-radius: 24px;
+		background-color: #34495e;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background-color: green;
+		border-radius: 24px;
+	}
 `;
 
 const ToolBar = styled.div`
@@ -47,11 +56,17 @@ const ToolBar = styled.div`
 
 const InputMessage = styled.div`
 	width: 100%;
+	max-height: 70px;
+	overflow-y: auto;
 	padding: 10px;
 	border-radius: 5px 0px 0px 5px;
 	outline: 0 !important;
 	color: #fff;
 	background-color: #95a5a6;
+
+	&::-webkit-scrollbar {
+		display: none;
+	}
 `;
 
 const ButtonSend = styled.button`
@@ -90,38 +105,51 @@ const MessageSend = styled.div`
 		`}
 `;
 
-const socket = socketIO('https://chat-api-react.herokuapp.com/');
+const socket = socketIO('http://localhost:8080');
 function App() {
-	socket.on('sendNewMessage', (data) => {
-		setAllMessages([...allMessages, { msg: data, received: true }]);
-	});
-	const [message, setMessage] = useState('');
+	const [message, setMessage] = useState({ text: '', received: false });
+	const [dbReady, setDBReady] = useState(false);
 	const [allMessages, setAllMessages] = useState([]);
-	const sendMSG = () => {
-		socket.emit('sendMessage', message);
+
+	socket.on('receivedMessages', (data) => {
+		setAllMessages([...data]);
+	});
+
+	socket.on('executeScroll', () => {
+		verifyScroll();
+	});
+
+	const verifyScroll = async () => {
+		const $messageContainer = document.querySelector('.message-container');
+		$messageContainer.scrollTop = $messageContainer.scrollHeight;
 	};
 
 	const handleSend = () => {
 		if (message !== '') {
-			setAllMessages([...allMessages, { msg: message }]);
+			socket.emit('sendMessage', message);
 			document.querySelector('.input-message').innerText = '';
-			setMessage('');
-			sendMSG();
 		}
 	};
 
 	const handleKeyUp = async (e) => {
-		await setMessage(e.target.innerText);
-		if (e.keyCode === 13 && !e.shiftKey) {
+		await setMessage({ ...message, text: e.target.innerText });
+		if (e.keyCode === 13 && e.shiftKey) {
 			e.preventDefault();
 			handleSend();
+			e.target.innerText = '';
 		}
 	};
 
 	useEffect(() => {
+		socket.on('dbStatus', (status) => {
+			setDBReady(status);
+		});
 		// eslint-disable-next-line
 	}, []);
 
+	if (dbReady === false) {
+		return <div>Esperando por el servidor...</div>;
+	}
 	return (
 		<div className="App">
 			<Header>
@@ -142,13 +170,13 @@ function App() {
 						if (msg.received) {
 							return (
 								<ContainerMessageSend key={index}>
-									<MessageSend received>{msg.msg}</MessageSend>
+									<MessageSend received>{msg.text}</MessageSend>
 								</ContainerMessageSend>
 							);
 						}
 						return (
 							<ContainerMessageSend key={index}>
-								<MessageSend>{msg.msg}</MessageSend>
+								<MessageSend>{msg.text}</MessageSend>
 							</ContainerMessageSend>
 						);
 					})}
