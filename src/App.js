@@ -116,7 +116,9 @@ function App() {
 	});
 
 	socket.on('executeScroll', () => {
-		verifyScroll();
+		setTimeout(() => {
+			verifyScroll();
+		}, 1200);
 	});
 
 	const verifyScroll = async () => {
